@@ -15,13 +15,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u where u.id = :id AND u.deletedAt IS NULL")
     Optional<User> findActiveById(@Param("id") Long id);
 
-//  Validations: Used to ensure new data is unique
-    boolean existsByEmailIgnoreCaseAndDeletedAtIsNull(String email);
-    boolean existsByAadhaarAndDeletedAtIsNull(String aadhaar);
-    boolean existsByPanIgnoreCaseAndDeletedAtIsNull(String pan);
+    // We fetch the actual Optional<User> so we can check its deletedAt status in Java
+    Optional<UserStatusView> findByEmailIgnoreCase(String email);
+    Optional<UserStatusView> findByAadhaar(String aadhaar);
+    Optional<UserStatusView> findByPanIgnoreCase(String pan);
 
-//    Ignores the user's own Id
-    boolean existsByEmailIgnoreCaseAndDeletedAtIsNullAndIdNot(String email, Long id);
-    boolean existsByAadhaarAndDeletedAtIsNullAndIdNot(String aadhaar, Long id);
-    boolean existsByPanIgnoreCaseAndDeletedAtIsNullAndIdNot(String pan, Long id);
+
 }
+////  Validations: Used to ensure new data is unique
+//    boolean existsByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+//    boolean existsByAadhaarAndDeletedAtIsNull(String aadhaar);
+//    boolean existsByPanIgnoreCaseAndDeletedAtIsNull(String pan);
+//
+////   Ignores the user's own Id
+//    boolean existsByEmailIgnoreCaseAndDeletedAtIsNullAndIdNot(String email, Long id);
+//    boolean existsByAadhaarAndDeletedAtIsNullAndIdNot(String aadhaar, Long id);
+//    boolean existsByPanIgnoreCaseAndDeletedAtIsNullAndIdNot(String pan, Long id);
