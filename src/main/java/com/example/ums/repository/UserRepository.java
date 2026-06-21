@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -20,6 +21,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<UserStatusView> findByAadhaar(String aadhaar);
     Optional<UserStatusView> findByPanIgnoreCase(String pan);
 
+    //  ADMIN QUERIES (Show deleted users)
+    List<User> findAllByDeletedAtIsNotNull();
+    Optional<User> findByIdAndDeletedAtIsNull(Long id);
 
 }
 ////  Validations: Used to ensure new data is unique

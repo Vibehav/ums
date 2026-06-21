@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -95,6 +96,27 @@ public class UserService {
         }
 
         throw new DuplicateResourceException(duplicateMessage);
+    }
+
+
+    @Transactional
+    public void softDeleteUser(Long id) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new RuntimeException("User not found or already deleted"));
+
+        user.setDeletedAt(LocalDateTime.now());
+
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void restoreUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found in database"));
+
+        user.setDeletedAt(null);
+
+        userRepository.save(user);
     }
 
 }

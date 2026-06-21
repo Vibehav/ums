@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/users")
@@ -33,8 +34,23 @@ public class UserController {
 
     @PatchMapping("/{id}")
     @Operation(summary = "Partially update a user")
-    public ResponseEntity<UserResponse> update(@PathVariable @Positive Long id,
-                                               @Valid @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<UserResponse> update(@PathVariable @Positive Long id, @Valid @RequestBody UserUpdateRequest request) {
         return ResponseEntity.ok(userService.update(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Soft delete an active user by ID")
+    public ResponseEntity<Void> softDeleteUser(@PathVariable Long id) {
+        userService.softDeleteUser(id);
+
+        return ResponseEntity.noContent().build();
+    }
+
+
+    @PatchMapping("/{id}/restore")
+    @Operation(summary = "Restore a soft-deleted user account")
+    public ResponseEntity<Void> restoreUser(@PathVariable Long id) {
+
+        return ResponseEntity.noContent().build();
     }
 }
