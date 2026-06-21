@@ -2,16 +2,15 @@ package com.example.ums.controller;
 
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
+import com.example.ums.dto.UserUpdateRequest;
 import com.example.ums.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
@@ -30,5 +29,12 @@ public class UserController {
         UserResponse created = userService.create(request);
         URI location = uriBuilder.path("/api/v1/users/{id}").buildAndExpand(created.getId()).toUri();
         return ResponseEntity.created(location).body(created);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(summary = "Partially update a user")
+    public ResponseEntity<UserResponse> update(@PathVariable @Positive Long id,
+                                               @Valid @RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(userService.update(id, request));
     }
 }

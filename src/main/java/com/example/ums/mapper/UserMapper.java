@@ -2,6 +2,7 @@ package com.example.ums.mapper;
 
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
+import com.example.ums.dto.UserUpdateRequest;
 import com.example.ums.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -54,4 +55,37 @@ public class UserMapper {
     }
 
 
+    public void applyUpdate(User user, UserUpdateRequest request) {
+        if (request.getName() != null) {
+            user.setName(request.getName());
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(normalizeEmail(request.getEmail()));
+        }
+
+        if (request.getPrimaryMobile() != null) {
+            user.setPrimaryMobile(request.getPrimaryMobile());
+        }
+        if (request.getSecondaryMobile() != null) {
+            user.setSecondaryMobile(request.getSecondaryMobile());
+        }
+        if (request.getAadhaar() != null) {
+            user.setAadhaar(request.getAadhaar());
+        }
+        if (request.getPan() != null) {
+            user.setPan(normalizePan(request.getPan()));
+        }
+        if (request.getDateOfBirth() != null) {
+            user.setDateOfBirth(request.getDateOfBirth());
+        }
+        if (request.getPlaceOfBirth() != null) {
+            user.setPlaceOfBirth(request.getPlaceOfBirth());
+        }
+        if (request.getCurrentAddress() != null) {
+            user.setCurrentAddress(request.getCurrentAddress());
+        }
+        if (request.getPermanentAddress() != null) {
+            user.setPermanentAddress(request.getPermanentAddress());
+        }
+    }
 }

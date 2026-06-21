@@ -2,9 +2,11 @@ package com.example.ums.service;
 
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
+import com.example.ums.dto.UserUpdateRequest;
 import com.example.ums.entity.User;
 import com.example.ums.exception.AccountInactiveException;
 import com.example.ums.exception.DuplicateResourceException;
+import com.example.ums.exception.UserNotFoundException;
 import com.example.ums.mapper.UserMapper;
 import com.example.ums.repository.UserRepository;
 import com.example.ums.repository.UserStatusView;
@@ -28,6 +30,17 @@ public class UserService {
         User user = userMapper.toEntity(request);
         User saved = userRepository.save(user);
         return userMapper.toResponse(saved);
+    }
+
+    @Transactional // Dirty checking , version control at db-level for concurrency
+    public UserResponse update(Long id, UserUpdateRequest request) {
+        User user = userRepository.findActiveById(id)
+                .orElseThrow(() -> new UserNotFoundException("User Not Found: "+ id ));
+
+        validateUserUniqueness(request.getEmail(), request.getAadhaar(), request.getPan(), id);
+        userMapper.applyUpdate(user, request);
+
+        return userMapper.toResponse(user);
     }
 
     private void validateUserUniqueness(String email, String aadhaar, String pan, Long excludeId) {
