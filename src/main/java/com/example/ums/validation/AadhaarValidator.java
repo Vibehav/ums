@@ -7,9 +7,9 @@ public class AadhaarValidator implements ConstraintValidator<ValidAadhaar, Strin
 
     @Override
     public boolean isValid(String aadhaar, ConstraintValidatorContext context) {
-        // 1. Do not Allow nulls
+        // 1. Allow nulls while update
         if (aadhaar == null || aadhaar.trim().isEmpty()) {
-            return false;
+            return true;
         }
 
         // 2. Check the strict format (12 digits, doesn't start with 0 or 1)
