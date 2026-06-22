@@ -108,4 +108,47 @@ class UserServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+
+    // UPDATE TESTS
+    @Test
+    void update_ValidRequest_Success() {
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setEmail("updated@example.com");
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
+        when(userRepository.findByAadhaar(any())).thenReturn(Optional.empty());
+        when(userRepository.findByPanIgnoreCase(any())).thenReturn(Optional.empty());
+        when(userMapper.toResponse(user)).thenReturn(userResponse);
+
+        UserResponse result = userService.update(1L, request);
+
+        assertNotNull(result);
+        verify(userMapper).applyUpdate(user, request);
+    }
+
+    @Test
+    void update_UserNotFound_ThrowsException() {
+        UserUpdateRequest request = new UserUpdateRequest();
+        when(userRepository.findActiveById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.update(99L, request));
+    }
+
+    @Test
+    void update_SameEmailExcludeId_Success() {
+        // Tests the logic: if existing.getId().equals(excludeId) -> return;
+        UserUpdateRequest request = new UserUpdateRequest();
+        request.setEmail("test@example.com");
+
+        UserStatusView myself = mock(UserStatusView.class);
+        when(myself.getId()).thenReturn(1L); // Same ID as the user being updated
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmailIgnoreCase(request.getEmail())).thenReturn(Optional.of(myself));
+
+        // This should NOT throw an exception because the IDs match
+        assertDoesNotThrow(() -> userService.update(1L, request));
+    }
+
 }
