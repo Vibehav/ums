@@ -1,5 +1,6 @@
 package com.example.ums.entity;
 
+import com.example.ums.validation.ValidAadhaar;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -36,7 +37,7 @@ public class User{
     private String secondaryMobile;
 
 
-    @Column(name = "aadhaar", length = 12)
+    @ValidAadhaar
     private String aadhaar;
 
     @Column(name = "pan", length = 10)
