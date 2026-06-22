@@ -1,5 +1,6 @@
 package com.example.ums.dto;
 
+import com.example.ums.validation.ValidAadhaar;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -28,7 +29,7 @@ public class UserUpdateRequest {
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Secondary mobile must be a valid 10-digit Indian mobile number")
     private String secondaryMobile;
 
-    @Pattern(regexp = "^[0-9]{12}",message = "Aadhaar must be a valid 12-digit number")
+    @ValidAadhaar
     private String aadhaar;
 
     @Pattern(regexp = "^[A-Z]{5}[0-9]{4}[A-Z]$", message = "PAN must match the format AAAAA9999A")
