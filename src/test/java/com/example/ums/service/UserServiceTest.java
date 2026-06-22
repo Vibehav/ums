@@ -1,10 +1,13 @@
 package com.example.ums.service;
 
+import com.example.ums.dto.PagedResponse;
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
+import com.example.ums.dto.UserUpdateRequest;
 import com.example.ums.entity.User;
 import com.example.ums.exception.AccountInactiveException;
 import com.example.ums.exception.DuplicateResourceException;
+import com.example.ums.exception.UserNotFoundException;
 import com.example.ums.mapper.UserMapper;
 import com.example.ums.repository.UserRepository;
 import com.example.ums.repository.UserStatusView;
@@ -15,8 +18,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
+
 import java.time.LocalDateTime;
+
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,57 +39,73 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
-    private UserCreateRequest validRequest;
-    private User mockUser;
-    private UserResponse mockResponse;
+    private User user;
+    private UserResponse userResponse;
 
     @BeforeEach
     void setUp() {
-        validRequest = UserCreateRequest.builder()
-                .name("John Doe")
-                .email("john@example.com")
-                .primaryMobile("9876543210")
-                .aadhaar("[Aadhaar Redacted]") // Replace with valid regex match locally
-                .pan("ABCDE1234F")
-                .dateOfBirth(LocalDate.of(1990, 1, 1))
-                .build();
+        user = new User();
+        user.setId(1L);
+        user.setEmail("test@example.com");
+        user.setAadhaar("[Aadhaar Redacted]");
 
-        mockUser = new User();
-        mockUser.setId(1L);
-        mockUser.setEmail("john@example.com");
-
-        mockResponse = new UserResponse();
-        mockResponse.setId(1L);
-        mockResponse.setEmail("john@example.com");
+        userResponse = new UserResponse();
+        userResponse.setId(1L);
+        userResponse.setEmail("test@example.com");
     }
 
+    // ==========================================
+    // CREATE TESTS
+    // ==========================================
+
     @Test
-    void create_ValidRequest_ReturnsUserResponse() {
+    void create_ValidRequest_Success() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setEmail("test@example.com");
+
         when(userRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
         when(userRepository.findByAadhaar(any())).thenReturn(Optional.empty());
         when(userRepository.findByPanIgnoreCase(any())).thenReturn(Optional.empty());
-        when(userMapper.toEntity(any(UserCreateRequest.class))).thenReturn(mockUser);
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
-        when(userMapper.toResponse(any(User.class))).thenReturn(mockResponse);
+        when(userMapper.toEntity(request)).thenReturn(user);
+        when(userRepository.save(user)).thenReturn(user);
+        when(userMapper.toResponse(user)).thenReturn(userResponse);
 
-        UserResponse result = userService.create(validRequest);
+        UserResponse result = userService.create(request);
 
         assertNotNull(result);
         assertEquals(1L, result.getId());
-        verify(userRepository).save(any(User.class));
+        verify(userRepository).save(user);
     }
 
     @Test
-    void create_DuplicateActiveEmail_ThrowsDuplicateResourceException() {
-        UserStatusView activeExistingUser = mock(UserStatusView.class);
-        when(activeExistingUser.getDeletedAt()).thenReturn(null);
-        when(userRepository.findByEmailIgnoreCase(validRequest.getEmail())).thenReturn(Optional.of(activeExistingUser));
+    void create_DuplicateActiveAadhaar_ThrowsDuplicateResourceException() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setAadhaar("123456789012");
 
-        DuplicateResourceException exception = assertThrows(DuplicateResourceException.class, () -> {
-            userService.create(validRequest);
-        });
+        UserStatusView activeUser = mock(UserStatusView.class);
+        when(activeUser.getDeletedAt()).thenReturn(null); // Active
 
-        assertTrue(exception.getMessage().contains("already exists"));
+        when(userRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
+        when(userRepository.findByAadhaar(request.getAadhaar())).thenReturn(Optional.of(activeUser));
+
+        assertThrows(DuplicateResourceException.class, () -> userService.create(request));
         verify(userRepository, never()).save(any());
     }
+
+    @Test
+    void create_InactivePan_ThrowsAccountInactiveException() {
+        UserCreateRequest request = new UserCreateRequest();
+        request.setPan("ABCDE1234F");
+
+        UserStatusView inactiveUser = mock(UserStatusView.class);
+        when(inactiveUser.getDeletedAt()).thenReturn(LocalDateTime.now()); // Soft Deleted
+
+        when(userRepository.findByEmailIgnoreCase(any())).thenReturn(Optional.empty());
+        when(userRepository.findByAadhaar(any())).thenReturn(Optional.empty());
+        when(userRepository.findByPanIgnoreCase(request.getPan())).thenReturn(Optional.of(inactiveUser));
+
+        assertThrows(AccountInactiveException.class, () -> userService.create(request));
+        verify(userRepository, never()).save(any());
+    }
+
 }
