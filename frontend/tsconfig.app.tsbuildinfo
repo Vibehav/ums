@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/api/client.ts","./src/api/users.ts","./src/components/ConfirmDialog.tsx","./src/components/Drawer.tsx","./src/components/Pagination.tsx","./src/components/Toast.tsx","./src/components/UserForm.tsx","./src/components/UsersTable.tsx","./src/hooks/useUsers.ts","./src/types/user.ts"],"errors":true,"version":"5.9.3"}
