@@ -2,9 +2,11 @@ package com.example.ums.service;
 
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
+import com.example.ums.dto.UserUpdateRequest;
 import com.example.ums.entity.User;
 import com.example.ums.exception.AccountInactiveException;
 import com.example.ums.exception.DuplicateResourceException;
+import com.example.ums.exception.UserNotFoundException;
 import com.example.ums.mapper.UserMapper;
 import com.example.ums.repository.UserRepository;
 import com.example.ums.repository.UserStatusView;
@@ -193,5 +195,169 @@ class UserServiceTest {
         AccountInactiveException ex = assertThrows(AccountInactiveException.class, () -> userService.create(baseRequest));
         assertTrue(ex.getMessage().contains("inactive account"));
         verify(userRepository, never()).save(any());
+    }
+    // ==========================================
+    // 5. UPDATE: HAPPY PATHS & NOT FOUND
+    // ==========================================
+
+    @Test
+    @DisplayName("Should update user successfully when there are no conflicts")
+    void update_ValidRequest_Success() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setEmail("new.email@example.com");
+        // Aadhaar and PAN are null, so their DB checks will be skipped by StringUtils.hasText()
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByEmailIgnoreCase(updateRequest.getEmail())).thenReturn(Optional.empty());
+
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        UserResponse result = userService.update(1L, updateRequest);
+
+        assertNotNull(result);
+        verify(userMapper).applyUpdate(mockUserEntity, updateRequest);
+    }
+
+    @Test
+    @DisplayName("Should throw UserNotFoundException if the user to update does not exist or is softly deleted")
+    void update_UserNotFound_ThrowsException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+
+        when(userRepository.findActiveById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.update(99L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should bypass validation and update successfully if the matching unique fields belong to the SAME user being updated")
+    void update_SameUserBypass_Success() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setEmail("my.own.email@example.com");
+
+        UserStatusView myself = mock(UserStatusView.class);
+        when(myself.getId()).thenReturn(1L); // The IDs MATCH
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByEmailIgnoreCase(updateRequest.getEmail())).thenReturn(Optional.of(myself));
+
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        assertDoesNotThrow(() -> userService.update(1L, updateRequest));
+        verify(userMapper).applyUpdate(mockUserEntity, updateRequest);
+    }
+
+    // ==========================================
+    // 6. UPDATE: EMAIL CONFLICTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should throw DuplicateResourceException on update when Email belongs to a DIFFERENT active user")
+    void update_ActiveEmailConflict_ThrowsDuplicateResourceException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setEmail("taken@example.com");
+
+        UserStatusView differentActiveUser = mock(UserStatusView.class);
+        when(differentActiveUser.getId()).thenReturn(2L);
+        when(differentActiveUser.getDeletedAt()).thenReturn(null);
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByEmailIgnoreCase(updateRequest.getEmail())).thenReturn(Optional.of(differentActiveUser));
+
+        assertThrows(DuplicateResourceException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw AccountInactiveException on update when Email belongs to a DIFFERENT soft-deleted user")
+    void update_InactiveEmailConflict_ThrowsAccountInactiveException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setEmail("deleted@example.com");
+
+        UserStatusView differentInactiveUser = mock(UserStatusView.class);
+        when(differentInactiveUser.getId()).thenReturn(2L);
+        when(differentInactiveUser.getDeletedAt()).thenReturn(LocalDateTime.now());
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByEmailIgnoreCase(updateRequest.getEmail())).thenReturn(Optional.of(differentInactiveUser));
+
+        assertThrows(AccountInactiveException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    // ==========================================
+    // 7. UPDATE: AADHAAR CONFLICTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should throw DuplicateResourceException on update when Aadhaar belongs to a DIFFERENT active user")
+    void update_ActiveAadhaarConflict_ThrowsDuplicateResourceException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setAadhaar("987654321098");
+
+        UserStatusView differentActiveUser = mock(UserStatusView.class);
+        when(differentActiveUser.getId()).thenReturn(2L);
+        when(differentActiveUser.getDeletedAt()).thenReturn(null);
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByAadhaar(updateRequest.getAadhaar())).thenReturn(Optional.of(differentActiveUser));
+
+        assertThrows(DuplicateResourceException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw AccountInactiveException on update when Aadhaar belongs to a DIFFERENT soft-deleted user")
+    void update_InactiveAadhaarConflict_ThrowsAccountInactiveException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setAadhaar("987654321098");
+
+        UserStatusView differentInactiveUser = mock(UserStatusView.class);
+        when(differentInactiveUser.getId()).thenReturn(2L);
+        when(differentInactiveUser.getDeletedAt()).thenReturn(LocalDateTime.now());
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByAadhaar(updateRequest.getAadhaar())).thenReturn(Optional.of(differentInactiveUser));
+
+        assertThrows(AccountInactiveException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    // ==========================================
+    // 8. UPDATE: PAN CONFLICTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should throw DuplicateResourceException on update when PAN belongs to a DIFFERENT active user")
+    void update_ActivePanConflict_ThrowsDuplicateResourceException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setPan("ZYXWV9876U");
+
+        UserStatusView differentActiveUser = mock(UserStatusView.class);
+        when(differentActiveUser.getId()).thenReturn(2L);
+        when(differentActiveUser.getDeletedAt()).thenReturn(null);
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByPanIgnoreCase(updateRequest.getPan())).thenReturn(Optional.of(differentActiveUser));
+
+        assertThrows(DuplicateResourceException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw AccountInactiveException on update when PAN belongs to a DIFFERENT soft-deleted user")
+    void update_InactivePanConflict_ThrowsAccountInactiveException() {
+        UserUpdateRequest updateRequest = new UserUpdateRequest();
+        updateRequest.setPan("ZYXWV9876U");
+
+        UserStatusView differentInactiveUser = mock(UserStatusView.class);
+        when(differentInactiveUser.getId()).thenReturn(2L);
+        when(differentInactiveUser.getDeletedAt()).thenReturn(LocalDateTime.now());
+
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userRepository.findByPanIgnoreCase(updateRequest.getPan())).thenReturn(Optional.of(differentInactiveUser));
+
+        assertThrows(AccountInactiveException.class, () -> userService.update(1L, updateRequest));
+        verify(userMapper, never()).applyUpdate(any(), any());
     }
 }
