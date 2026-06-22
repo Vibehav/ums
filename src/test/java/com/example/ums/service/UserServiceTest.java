@@ -1,5 +1,6 @@
 package com.example.ums.service;
 
+import com.example.ums.dto.PagedResponse;
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
 import com.example.ums.dto.UserUpdateRequest;
@@ -17,8 +18,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -359,5 +365,93 @@ class UserServiceTest {
 
         assertThrows(AccountInactiveException.class, () -> userService.update(1L, updateRequest));
         verify(userMapper, never()).applyUpdate(any(), any());
+    }
+
+    // ==========================================
+    // 11. GET BY ID TESTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should return UserResponse when getById finds an active user")
+    void getById_Success() {
+        when(userRepository.findActiveById(1L)).thenReturn(Optional.of(mockUserEntity));
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        UserResponse result = userService.getById(1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw UserNotFoundException when getById cannot find an active user")
+    void getById_NotFound_ThrowsException() {
+        when(userRepository.findActiveById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> userService.getById(99L));
+        // No mapper stub is needed here because the exception halts execution
+        verify(userMapper, never()).toResponse(any());
+    }
+
+    // ==========================================
+    // 12. GET ALL (PAGINATION) TESTS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should return paged active users without calling search when search string is null")
+    void getAll_WithoutSearch_ReturnsPagedResponse() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> userPage = new PageImpl<>(List.of(mockUserEntity));
+
+        // ONLY stub findAllActive because StringUtils.hasText(null) is false
+        when(userRepository.findAllActive(pageable)).thenReturn(userPage);
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        PagedResponse<UserResponse> result = userService.getAll(pageable, null);
+
+        assertNotNull(result);
+        // Verify it routed to the correct DB call
+        verify(userRepository).findAllActive(pageable);
+        verify(userRepository, never()).searchActive(anyString(), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("Should trim search string and return paged active users using searchActive")
+    void getAll_WithSearch_ReturnsPagedResponse() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<User> userPage = new PageImpl<>(List.of(mockUserEntity));
+        String rawSearch = "  John  ";
+        String trimmedSearch = "John"; // The service should apply .trim()
+
+        // ONLY stub searchActive because StringUtils.hasText("  John  ") is true
+        when(userRepository.searchActive(trimmedSearch, pageable)).thenReturn(userPage);
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        PagedResponse<UserResponse> result = userService.getAll(pageable, rawSearch);
+
+        assertNotNull(result);
+        // Verify it routed to the correct DB call and properly trimmed the string
+        verify(userRepository).searchActive(trimmedSearch, pageable);
+        verify(userRepository, never()).findAllActive(any(Pageable.class));
+    }
+
+    // ==========================================
+    // 13. GET DELETED USERS
+    // ==========================================
+
+    @Test
+    @DisplayName("Should return list of mapped deleted users")
+    void getDeletedUsers_ReturnsMappedList() {
+        // Setup: Ensure our mock entity looks like a deleted user
+        mockUserEntity.setDeletedAt(LocalDateTime.now());
+
+        when(userRepository.findAllByDeletedAtIsNotNull()).thenReturn(List.of(mockUserEntity));
+        when(userMapper.toResponse(mockUserEntity)).thenReturn(mockUserResponse);
+
+        List<UserResponse> result = userService.getDeletedUsers();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(userRepository).findAllByDeletedAtIsNotNull();
     }
 }
