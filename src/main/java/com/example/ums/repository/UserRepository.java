@@ -1,6 +1,8 @@
 package com.example.ums.repository;
 
 import com.example.ums.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -24,6 +26,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
     //  ADMIN QUERIES (Show deleted users)
     List<User> findAllByDeletedAtIsNotNull();
     Optional<User> findByIdAndDeletedAtIsNull(Long id);
+
+    //    Pagination
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL")
+    Page<User> findAllActive(Pageable pageable);
+
+    @Query("""
+            SELECT u FROM User u
+            WHERE u.deletedAt IS NULL
+              AND (
+                   LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))
+                OR u.primaryMobile LIKE CONCAT('%', :search, '%')
+              )
+            """)
+    Page<User> searchActive(@Param("search") String search, Pageable pageable);
 
 }
 ////  Validations: Used to ensure new data is unique

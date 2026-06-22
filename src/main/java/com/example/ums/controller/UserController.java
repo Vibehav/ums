@@ -1,5 +1,6 @@
 package com.example.ums.controller;
 
+import com.example.ums.dto.PagedResponse;
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
 import com.example.ums.dto.UserUpdateRequest;
@@ -8,13 +9,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Map;
 
 @RestController
 @RequestMapping("api/v1/users")
@@ -50,7 +52,20 @@ public class UserController {
     @PatchMapping("/{id}/restore")
     @Operation(summary = "Restore a soft-deleted user account")
     public ResponseEntity<Void> restoreUser(@PathVariable Long id) {
-
+        userService.restoreUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    @Operation(summary = "List users with pagination, sorting, and optional search")
+    public ResponseEntity<PagedResponse<UserResponse>> getAll(@RequestParam(required = false) String search,
+                                                              Pageable pageable) {
+        return ResponseEntity.ok(userService.getAll(pageable, search));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a single user by id")
+    public ResponseEntity<UserResponse> getById(@PathVariable @Positive Long id) {
+        return ResponseEntity.ok(userService.getById(id));
     }
 }

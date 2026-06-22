@@ -1,5 +1,6 @@
 package com.example.ums.service;
 
+import com.example.ums.dto.PagedResponse;
 import com.example.ums.dto.UserCreateRequest;
 import com.example.ums.dto.UserResponse;
 import com.example.ums.dto.UserUpdateRequest;
@@ -11,12 +12,13 @@ import com.example.ums.mapper.UserMapper;
 import com.example.ums.repository.UserRepository;
 import com.example.ums.repository.UserStatusView;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -111,12 +113,32 @@ public class UserService {
 
     @Transactional
     public void restoreUser(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found in database"));
+        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found in database"));
 
         user.setDeletedAt(null);
 
         userRepository.save(user);
+    }
+
+    //Pagination
+    public UserResponse getById(Long id) {
+        User user = userRepository.findActiveById(id)
+                .orElseThrow(() -> new UserNotFoundException("User Id not found: "+ id));
+        return userMapper.toResponse(user);
+    }
+
+    public PagedResponse<UserResponse> getAll(Pageable pageable, String search) {
+        Page<User> page;
+        if(StringUtils.hasText(search)){
+            page = userRepository.searchActive(search.trim(),pageable);
+        } else {
+            page = userRepository.findAllActive(pageable);
+        }
+
+        Page<UserResponse> mappedPage = page.map(userMapper::toResponse);
+
+        return PagedResponse.from(mappedPage);
+
     }
 
 }
