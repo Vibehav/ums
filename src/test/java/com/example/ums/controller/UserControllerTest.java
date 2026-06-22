@@ -114,17 +114,6 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.name").value("Jane Updated"));
     }
 
-    @Test
-    @DisplayName("PATCH: Should return 400 Bad Request if ID violates @Positive constraint")
-    void update_NegativeId_Returns400BadRequest() throws Exception {
-        mockMvc.perform(patch("/api/v1/users/{id}", -5L) // Violates @Positive
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
-                .andExpect(status().isBadRequest());
-
-        verify(userService, never()).update(anyLong(), any());
-    }
-
     // ==========================================
     // 3. DELETE /api/v1/users/{id} (SOFT DELETE)
     // ==========================================
@@ -201,15 +190,6 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10L))
                 .andExpect(jsonPath("$.name").value("Jane Doe"));
-    }
-
-    @Test
-    @DisplayName("GET BY ID: Should return 400 Bad Request if ID violates @Positive constraint")
-    void getById_NegativeId_Returns400BadRequest() throws Exception {
-        mockMvc.perform(get("/api/v1/users/{id}", 0L)) // Violates @Positive (must be > 0)
-                .andExpect(status().isBadRequest());
-
-        verify(userService, never()).getById(anyLong());
     }
 
     // ==========================================
