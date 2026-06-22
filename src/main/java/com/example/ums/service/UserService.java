@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -104,7 +105,7 @@ public class UserService {
     @Transactional
     public void softDeleteUser(Long id) {
         User user = userRepository.findByIdAndDeletedAtIsNull(id)
-                .orElseThrow(() -> new RuntimeException("User not found or already deleted"));
+                .orElseThrow(() -> new UserNotFoundException("User not found or already deleted"));
 
         user.setDeletedAt(LocalDateTime.now());
 
@@ -139,6 +140,14 @@ public class UserService {
 
         return PagedResponse.from(mappedPage);
 
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserResponse> getDeletedUsers() {
+        return userRepository.findAllByDeletedAtIsNotNull()
+                .stream()
+                .map(userMapper::toResponse)
+                .toList();
     }
 
 }

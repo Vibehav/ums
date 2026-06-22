@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("api/v1/users")
@@ -67,5 +68,11 @@ public class UserController {
     @Operation(summary = "Get a single user by id")
     public ResponseEntity<UserResponse> getById(@PathVariable @Positive Long id) {
         return ResponseEntity.ok(userService.getById(id));
+    }
+
+    @GetMapping("/deleted")
+    @Operation(summary = "Get all soft deleted users")
+    public ResponseEntity<List<UserResponse>> getDeletedUsers() {
+        return ResponseEntity.ok(userService.getDeletedUsers());
     }
 }
