@@ -43,8 +43,8 @@ public class UserMapper {
                 .email(user.getEmail())
                 .primaryMobile(user.getPrimaryMobile())
                 .secondaryMobile(user.getSecondaryMobile())
-                .aadhaar(user.getAadhaar())
-                .pan(user.getPan())
+                .aadhaar(maskAadhaar(user.getAadhaar()))
+                .pan(maskPan(user.getPan()))
                 .dateOfBirth(user.getDateOfBirth())
                 .placeOfBirth(user.getPlaceOfBirth())
                 .currentAddress(user.getCurrentAddress())
@@ -87,5 +87,21 @@ public class UserMapper {
         if (request.getPermanentAddress() != null) {
             user.setPermanentAddress(request.getPermanentAddress());
         }
+    }
+
+
+    private String maskAadhaar(String aadhaar) {
+        if (aadhaar == null || aadhaar.length() != 12) {
+            return aadhaar;
+        }
+        return "X".repeat(8) + aadhaar.substring(8);
+    }
+
+
+    private String maskPan(String pan) {
+        if (pan == null || pan.length() != 10) {
+            return pan;
+        }
+        return "X".repeat(5) + pan.substring(5);
     }
 }
