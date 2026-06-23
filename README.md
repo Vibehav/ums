@@ -2,9 +2,8 @@
 
 A production-ready REST API for managing user records (KYC-style profile data) built with Spring Boot 3.5.15 and Java 21, backed by MySQL 8.4.
 
-**Frontend Readme**
-- ## Documentation
 
+## Documentation
 - [Frontend Documentation](./frontend/Readme.md)
 ## Tech Stack
 
