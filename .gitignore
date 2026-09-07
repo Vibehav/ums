@@ -34,4 +34,9 @@ build/
 
 .env
 
+### Frontend build dependencies ###
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
 /.idea/

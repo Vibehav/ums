@@ -102,6 +102,29 @@ proxy: {
 
 This means no CORS issues during development. The backend also has a `CorsConfig.java` as a safety net.
 
+## Deploy the frontend
+
+The frontend can be deployed to Vercel, Netlify, or Cloudflare Pages. It is a
+static Vite application, so use these settings:
+
+| Setting | Value |
+|---|---|
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Node.js | 18 or newer |
+
+Before deploying, host the Spring Boot backend at a public HTTPS URL and add
+the frontend site's URL to its CORS allowed origins. In the hosting provider's
+environment variables, set:
+
+```env
+VITE_API_BASE_URL=https://your-backend.example.com
+```
+
+The value is compiled into the browser bundle, so it must be the public backend
+origin (not `localhost`) and must not contain `/api/v1/users`. Then redeploy
+after changing the variable.
+
 ---
 
 ## API Endpoints Used
